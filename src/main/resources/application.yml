@@ -5,4 +5,6 @@ spring:
     password: 123456
     url: jdbc:mysql://localhost:3306/test?useUnicode=true&characterEncoding=UTF-8&serverTimezone=GMT%2B8&useSSL=false
 mybatis:
-  mapper-locations: mapper/*.xml
+  mapper-locations: com/jh/downloadWallpaper/mapper/*.xml
+server:
+  port: 8099
