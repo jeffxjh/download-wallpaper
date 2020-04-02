@@ -24,7 +24,7 @@ public class WallPaperSchedul {
 
     @Scheduled(cron = "0/1 * * * * *")
     private void getWallpaper() {
-
+     //   business.getWallPaper();
 
     }
 }

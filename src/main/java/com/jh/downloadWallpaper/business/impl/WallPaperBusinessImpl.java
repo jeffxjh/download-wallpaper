@@ -1,19 +1,22 @@
 package com.jh.downloadWallpaper.business.impl;
 
 import cn.hutool.core.io.FileUtil;
+import com.jh.downloadWallpaper.asyn.AsynService;
 import com.jh.downloadWallpaper.business.WallPaperBusiness;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * description
@@ -21,49 +24,48 @@ import java.net.URLConnection;
  * @Author: jeffx
  * @Date: 2020/3/31:15:22
  */
+@Slf4j
 @Service
 public class WallPaperBusinessImpl implements WallPaperBusiness {
-    private String url = "https://wallhaven.cc/toplist?page=4";
+    private final String localPath = "C:/Users/jeffx/Pictures/Saved Pictures/";
+    @Autowired
+    private AsynService service;
     @Override
     public void getWallPaper() {
         try {
-            Document doc = Jsoup.connect(url)
-                    .header("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:49.0) Gecko/20100101 Firefox/49.0")
-                   // .header("Connection", "alive")//如果是这种方式，这里务必带上
-                    .timeout(60000)//超时时间
-                    .get();
-            Elements preview = doc.body().getElementsByClass("preview");
-            for (Element element : preview) {
-                String href = element.attr("href");
-                Document childDoc = Jsoup.connect(href)
+            //ExecutorService threadPool = Executors.newFixedThreadPool(20);
+            //threadPool.execute(new Runnable() {
+            //    @Override
+            //    public void run() {
+            //
+            //    }
+            //});
+            for (int i = 1; i <= 20; i++) {
+                String webUrl = "https://wallhaven.cc/toplist?page="+i;
+                Document doc = Jsoup.connect(webUrl)
                         .header("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:49.0) Gecko/20100101 Firefox/49.0")
-                     //   .header("Connection", "close")//如果是这种方式，这里务必带上
                         .timeout(60000)//超时时间
                         .get();
-                Element wallpaper = childDoc.getElementById("wallpaper");
-                String src = wallpaper.attr("src");
-                System.out.println(src);
-                // 构造URL
-                URL url = new URL(src);
-                // 打开连接
-                URLConnection urlConnection = url.openConnection();
-                urlConnection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:29.0) Gecko/20100101 Firefox/29.0"); //防止报403错误。
-                // 输入流
-                InputStream is = urlConnection.getInputStream();
-                // 1K的数据缓冲
-                byte[] bs = new byte[1024];
-                // 读取到的数据长度
-                int len;
-                // 输出的文件流
-                OutputStream os = new FileOutputStream("F:/pic/Saved Pictures" + FileUtil.getName(src));
-                // 开始读取
-                while ((len = is.read(bs)) != -1) {
-                    os.write(bs, 0, len);
+                Elements preview = doc.body().getElementsByClass("preview");
+                for (Element element : preview) {
+                    String href = element.attr("href");
+                    Document childDoc = Jsoup.connect(href)
+                            .header("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:49.0) Gecko/20100101 Firefox/49.0")
+                            .timeout(60000)//超时时间
+                            .get();
+                    Element wallpaper = childDoc.getElementById("wallpaper");
+                    String src = wallpaper.attr("src");
+                    log.info("图片地址为："+src);
+                    File file=new File(localPath + FileUtil.getName(src));
+                    if (file.exists()) {
+                        log.info("已存在文件"+FileUtil.getName(src)+"跳过该文件");
+                        continue;
+                    }
+                    service.downLoad(src);
                 }
-                // 完毕，关闭所有链接
-                os.close();
-                is.close();
+                log.error("第"+i+"页下载完成");
             }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
